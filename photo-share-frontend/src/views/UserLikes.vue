@@ -112,6 +112,15 @@ const avgLikes = computed(() => {
 const loadLikedPhotos = async () => {
   try {
     loading.value = true
+    
+    // 检查userId是否有效
+    if (isNaN(userId)) {
+      console.error('无效的用户ID:', userId)
+      showToast('无效的用户ID')
+      router.push('/') // 重定向到首页
+      return
+    }
+    
     const response = await request.get(`/photos/user/${userId}/liked`, {
       params: {
         page: currentPage.value,
@@ -178,6 +187,14 @@ const formatTime = (time) => {
 }
 
 onMounted(() => {
+  // 检查userId是否有效
+  if (isNaN(userId)) {
+    console.error('无效的用户ID:', userId)
+    showToast('无效的用户ID')
+    router.push('/') // 重定向到首页
+    return
+  }
+  
   loadLikedPhotos()
 })
 </script>

@@ -47,6 +47,7 @@ app.use('/api/photos', require('./routes/photos'));
 app.use('/api/comments', require('./routes/comments'));
 app.use('/api/likes', require('./routes/likes'));
 app.use('/api/follows', require('./routes/follows'));
+app.use('/api/search', require('./routes/search'));
 
 // 健康检查
 app.get('/api/health', (req, res) => {
@@ -98,21 +99,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
 
-// 启动服务器
-const server = app.listen(PORT, () => {
-  console.log(`服务器运行在端口 ${PORT}`);
-  console.log(`环境: ${process.env.NODE_ENV}`);
-});
-
-// 优雅关闭
-process.on('SIGTERM', () => {
-  console.log('收到SIGTERM信号，正在关闭服务器...');
-  server.close(() => {
-    console.log('服务器已关闭');
-    process.exit(0);
-  });
-});
 
 module.exports = app;

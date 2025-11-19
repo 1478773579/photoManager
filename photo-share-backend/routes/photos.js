@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Photo, User, Like, Comment } = require('../models');
+const { Photo, User, Like, Comment, Follow } = require('../models');
 const { authMiddleware, optionalAuth } = require('../utils/auth');
 const { uploadPhoto, uploadPhotos, getFileUrl } = require('../utils/upload');
 const { Op } = require('sequelize');
@@ -153,7 +153,7 @@ router.post('/upload-multiple', authMiddleware, uploadPhotos, async (req, res) =
       });
     }
 
-    const { photos: photosData } = req.body;
+    const { photosData } = req.body;
     let parsedPhotosData = [];
     
     if (photosData) {
@@ -213,8 +213,8 @@ router.post('/upload-multiple', authMiddleware, uploadPhotos, async (req, res) =
         userId: req.user.id,
         title: photoData.title.trim(),
         description: photoData.description?.trim() || '',
-        imageUrl: getFileUrl(file.filename, 'photo'),
-        thumbnailUrl: getFileUrl(file.filename, 'photo'),
+        imageUrl: getFileUrl(file.filename, 'photos'),
+        thumbnailUrl: getFileUrl(file.filename, 'photos'),
         width: file.width || null,
         height: file.height || null,
         fileSize: file.size,
@@ -436,8 +436,9 @@ router.get('/:id', optionalAuth, async (req, res) => {
     // 增加浏览量
     await photo.increment('views');
 
-    // 如果用户已登录，检查是否已点赞
+    // 如果用户已登录，检查是否已点赞和关注作者
     if (req.user) {
+      // 检查是否已点赞
       const userLike = await Like.findOne({
         where: {
           userId: req.user.id,
@@ -446,6 +447,18 @@ router.get('/:id', optionalAuth, async (req, res) => {
         }
       });
       photo.dataValues.isLiked = !!userLike;
+      
+      // 检查是否已关注作者
+      if (req.user.id !== photo.userId) {
+        const userFollow = await Follow.findOne({
+          where: {
+            followerId: req.user.id,
+            followingId: photo.userId,
+            status: 'active'
+          }
+        });
+        photo.user.dataValues.isFollowing = !!userFollow;
+      }
     }
 
     res.json({

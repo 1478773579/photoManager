@@ -43,48 +43,20 @@ import MessageList from '@/components/MessageList.vue'
 const active = ref(2)
 const activeTab = ref('all')
 
-// 模拟消息数据
-const mockMessages = [
-  {
-    id: 1,
-    type: 'like',
-    user: {
-      id: 1,
-      nickname: '摄影师小王',
-      avatar: 'https://picsum.photos/seed/user1/100/100.jpg'
-    },
-    content: '赞了你的作品《美丽的夕阳》',
-    targetImage: 'https://picsum.photos/seed/photo1/100/100.jpg',
-    createdAt: '2分钟前',
-    isRead: false
-  },
-  {
-    id: 2,
-    type: 'comment',
-    user: {
-      id: 2,
-      nickname: '旅行达人',
-      avatar: 'https://picsum.photos/seed/user2/100/100.jpg'
-    },
-    content: '评论了你的作品：拍得真好！',
-    targetImage: 'https://picsum.photos/seed/photo2/100/100.jpg',
-    createdAt: '10分钟前',
-    isRead: false
-  }
-]
-
 const allMessages = ref([])
 const likeMessages = ref([])
 const commentMessages = ref([])
 const followMessages = ref([])
 const systemMessages = ref([])
 
-// 加载消息数据
-const loadMessages = () => {
-  allMessages.value = [...mockMessages]
-  likeMessages.value = mockMessages.filter(msg => msg.type === 'like')
-  commentMessages.value = mockMessages.filter(msg => msg.type === 'comment')
-  followMessages.value = mockMessages.filter(msg => msg.type === 'follow')
+// 加载消息数据 - 待后端API实现
+const loadMessages = async () => {
+  // 这里将调用后端API获取真实消息数据
+  // 目前返回空数组，确保没有假数据
+  allMessages.value = []
+  likeMessages.value = []
+  commentMessages.value = []
+  followMessages.value = []
   systemMessages.value = []
 }
 

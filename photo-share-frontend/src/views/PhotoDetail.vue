@@ -234,10 +234,10 @@ const handleLike = async () => {
       data: { action }
     })
 
-    if (response.success) {
-      photo.value.isLiked = response.data.isLiked
-      photo.value.likes = response.data.likes
-      showToast(response.message)
+    if (response.data.success) {
+      photo.value.isLiked = response.data.data.isLiked
+      photo.value.likes = response.data.data.likes
+      showToast(response.data.message)
     }
   } catch (error) {
     console.error('点赞操作失败:', error)
@@ -339,8 +339,8 @@ const submitComment = async () => {
       }
     })
 
-    if (response.success) {
-      comments.value.unshift(response.data)
+    if (response.data.success) {
+      comments.value.unshift(response.data.data)
       photo.value.comments++
       commentText.value = ''
       showToast('评论发表成功')
@@ -374,13 +374,22 @@ const formatTime = (timeString) => {
 const loadPhotoDetail = async () => {
   try {
     loading.value = true
+    
+    // 检查photoId是否有效
+    if (!photoId || isNaN(parseInt(photoId))) {
+      console.error('无效的图片ID:', photoId)
+      showToast('无效的图片ID')
+      router.push('/') // 重定向到首页
+      return
+    }
+    
     const response = await request({
       url: `/photos/${photoId}`,
       method: 'GET'
     })
 
-    if (response.success) {
-      const photoData = response.data
+    if (response.data.success) {
+      const photoData = response.data.data
       
       // 处理图片数据，确保包含所有必要信息
       photo.value = {
@@ -430,6 +439,9 @@ const loadPhotoDetail = async () => {
           replies: comment.replies || []
         }))
       }
+    } else {
+      console.error('获取作品详情失败，响应:', response.data)
+      showToast('获取作品详情失败')
     }
   } catch (error) {
     console.error('加载图片详情失败:', error)
@@ -442,20 +454,38 @@ const loadPhotoDetail = async () => {
 // 加载评论列表
 const loadComments = async () => {
   try {
+    // 检查photoId是否有效
+    if (!photoId || isNaN(parseInt(photoId))) {
+      console.error('无效的图片ID:', photoId)
+      return
+    }
+    
     const response = await request({
       url: `/comments/photo/${photoId}`,
       method: 'GET'
     })
 
-    if (response.success) {
-      comments.value = response.data.comments || []
+    if (response.data.success) {
+      comments.value = response.data.data.comments || []
+    } else {
+      console.error('获取评论列表失败，响应:', response.data)
+      showToast('获取评论列表失败')
     }
   } catch (error) {
     console.error('加载评论失败:', error)
+    showToast('获取评论列表失败')
   }
 }
 
 onMounted(async () => {
+  // 检查photoId是否有效
+  if (!photoId || isNaN(parseInt(photoId))) {
+    console.error('无效的图片ID:', photoId)
+    showToast('无效的图片ID')
+    router.push('/') // 重定向到首页
+    return
+  }
+  
   await loadPhotoDetail()
   await loadComments()
 })

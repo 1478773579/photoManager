@@ -143,14 +143,14 @@ const userStore = useUserStore()
 
 const active = ref(3)
 const showAvatarActions = ref(false)
-const unreadCount = ref(3)
+const unreadCount = ref(0) // 从后端获取真实未读消息数量，当前默认0
 
 // 用户统计信息
 const userStats = ref({
-  worksCount: 12,
-  followersCount: 256,
-  followingCount: 128,
-  likesCount: 1024
+  worksCount: 0,
+  followersCount: 0,
+  followingCount: 0,
+  likesCount: 0
 })
 
 // 头像操作选项
@@ -228,6 +228,15 @@ onMounted(async () => {
   // 获取用户信息
   if (userStore.token) {
     await userStore.fetchUserProfile()
+    // 更新用户统计信息
+    if (userStore.user) {
+      userStats.value = {
+        worksCount: userStore.user.stats?.photos || 0,
+        followersCount: userStore.user.stats?.followers || 0,
+        followingCount: userStore.user.stats?.following || 0,
+        likesCount: userStore.user.likes || 0
+      }
+    }
   }
 })
 </script>

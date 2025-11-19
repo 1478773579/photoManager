@@ -42,19 +42,23 @@
           
           <!-- 统计数据 -->
           <div class="user-stats">
-            <div class="stat-item" @click="showFollowers">
-              <div class="stat-number">{{ user.followers }}</div>
-              <div class="stat-label">粉丝</div>
-            </div>
-            <div class="stat-item" @click="showFollowing">
-              <div class="stat-number">{{ user.following }}</div>
-              <div class="stat-label">关注</div>
-            </div>
-            <div class="stat-item" @click="showLikes">
-              <div class="stat-number">{{ user.likes }}</div>
-              <div class="stat-label">获赞</div>
-            </div>
-          </div>
+        <div class="stat-item" @click="showUserWorks">
+          <div class="stat-number">{{ user.stats?.photos || 0 }}</div>
+          <div class="stat-label">作品</div>
+        </div>
+        <div class="stat-item" @click="showFollowers">
+          <div class="stat-number">{{ user.stats?.followers || 0 }}</div>
+          <div class="stat-label">粉丝</div>
+        </div>
+        <div class="stat-item" @click="showFollowing">
+          <div class="stat-number">{{ user.stats?.following || 0 }}</div>
+          <div class="stat-label">关注</div>
+        </div>
+        <div class="stat-item" @click="showLikes">
+          <div class="stat-number">{{ user.likes || 0 }}</div>
+          <div class="stat-label">获赞</div>
+        </div>
+      </div>
         </div>
       </div>
 
@@ -222,6 +226,15 @@ const loadUserProfile = async () => {
   try {
     loading.value = true
     console.log('开始加载用户信息，userId:', userId)
+    
+    // 检查userId是否有效
+    if (isNaN(userId)) {
+      console.error('无效的用户ID:', userId)
+      showToast('无效的用户ID')
+      router.push('/') // 重定向到首页
+      return
+    }
+    
     const timestamp = Date.now()
     const response = await request.get(`/users/${userId}?t=${timestamp}`)
     console.log('用户信息响应:', response.data)
@@ -232,7 +245,7 @@ const loadUserProfile = async () => {
         ...userData,
         followers: userData.stats.followers,
         following: userData.stats.following,
-        likes: userData.stats.photos * 10 // 模拟获赞数
+        likes: 0 // 暂时设为0，待后端添加获赞数统计
       }
       console.log('用户信息加载成功:', user.value)
     } else {
@@ -252,6 +265,13 @@ const loadUserProfile = async () => {
 const loadUserWorks = async () => {
   try {
     console.log('开始加载用户作品，userId:', userId)
+    
+    // 检查userId是否有效
+    if (isNaN(userId)) {
+      console.error('无效的用户ID:', userId)
+      return
+    }
+    
     const timestamp = Date.now()
     const response = await request.get(`/photos/user/${userId}?t=${timestamp}`)
     console.log('用户作品响应:', response.data)
@@ -381,6 +401,14 @@ const formatTime = (time) => {
 }
 
 onMounted(() => {
+  // 检查userId是否有效
+  if (isNaN(userId)) {
+    console.error('无效的用户ID:', userId)
+    showToast('无效的用户ID')
+    router.push('/') // 重定向到首页
+    return
+  }
+  
   loadUserProfile()
   loadUserWorks()
 })

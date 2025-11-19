@@ -67,7 +67,7 @@ const finished = ref(false)
 
 // 下拉刷新
 const onRefresh = () => {
-  // 模拟刷新
+  // 刷新功能 - 待后端API实现
   setTimeout(() => {
     refreshing.value = false
   }, 1000)
@@ -75,7 +75,7 @@ const onRefresh = () => {
 
 // 加载更多
 const onLoad = () => {
-  // 模拟加载更多
+  // 加载更多功能 - 待后端API实现
   setTimeout(() => {
     loading.value = false
     finished.value = true

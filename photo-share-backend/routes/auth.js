@@ -127,7 +127,7 @@ router.post('/login', async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: '手机号或密码错误'
+        message: '手机号未注册'
       });
     }
 
@@ -144,7 +144,7 @@ router.post('/login', async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
-        message: '手机号或密码错误'
+        message: '密码错误'
       });
     }
 

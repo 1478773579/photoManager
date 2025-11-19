@@ -179,43 +179,9 @@ const canPublish = computed(() => {
 
 // 文件读取完成
 const afterRead = async (file) => {
-  try {
-    // 将文件转换为FormData
-    const formData = new FormData()
-    
-    // 处理文件对象
-    if (file.file) {
-      formData.append('photo', file.file)
-    } else if (file.content) {
-      // 将base64转换为blob
-      const blob = dataURLtoBlob(file.content)
-      const fileName = `image_${Date.now()}.jpg`
-      formData.append('photo', blob, fileName)
-    }
-    
-    // 上传图片文件
-    const response = await request.post('/photos/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
-    
-    if (response.data.success) {
-      // 更新文件列表中的URL和信息
-      file.url = response.data.data.imageUrl
-      file.uploaded = true
-      file.imageInfo = response.data.data
-      showToast('图片上传成功')
-    }
-  } catch (error) {
-    console.error('图片上传失败:', error)
-    showToast('图片上传失败')
-    // 移除上传失败的文件
-    const index = fileList.value.indexOf(file)
-    if (index > -1) {
-      fileList.value.splice(index, 1)
-    }
-  }
+  // 这里只是将文件添加到fileList，不立即上传
+  // 上传操作将在点击发布按钮时统一处理
+  file.uploaded = false
 }
 
 // 将dataURL转换为Blob
@@ -279,46 +245,54 @@ const handlePublish = async () => {
   publishing.value = true
 
   try {
-    // 确保所有图片都已上传
-    const uploadedFiles = fileList.value.filter(file => file.uploaded)
-    if (uploadedFiles.length === 0) {
-      showToast('请先上传图片')
+    // 确保选择了图片
+    if (fileList.value.length === 0) {
+      showToast('请先选择图片')
       publishing.value = false
       return
     }
 
-    // 为每个上传的图片创建记录
-    const publishPromises = uploadedFiles.map(async (file) => {
-      const publishData = {
-        title: form.value.title,
-        description: form.value.description,
-        tags: selectedTags.value,
-        imageUrl: file.imageInfo.imageUrl,
-        thumbnailUrl: file.imageInfo.thumbnailUrl,
-        width: file.imageInfo.width,
-        height: file.imageInfo.height,
-        fileSize: file.imageInfo.fileSize,
-        format: file.imageInfo.format,
-        settings: {
-          allowComments: form.value.allowComments,
-          allowDownload: form.value.allowDownload
-        }
+    // 创建FormData用于批量上传
+    const formData = new FormData()
+    
+    // 添加所有选择的图片
+    fileList.value.forEach(file => {
+      if (file.file) {
+        formData.append('photos', file.file)
+      } else if (file.content) {
+        // 将base64转换为blob
+        const blob = dataURLtoBlob(file.content)
+        const fileName = `image_${Date.now()}.jpg`
+        formData.append('photos', blob, fileName)
       }
-
-      return await request.post('/photos', publishData)
     })
-
-    // 等待所有图片发布完成
-    const results = await Promise.all(publishPromises)
     
-    // 检查是否所有图片都发布成功
-    const allSuccess = results.every(result => result.data.success)
+    // 准备照片数据（每张照片的元数据）
+    const photosData = fileList.value.map(() => ({
+      title: form.value.title,
+      description: form.value.description,
+      tags: selectedTags.value,
+      settings: {
+        allowComments: form.value.allowComments,
+        allowDownload: form.value.allowDownload
+      }
+    }))
     
-    if (allSuccess) {
+    // 添加照片数据到FormData
+    formData.append('photosData', JSON.stringify(photosData))
+    
+    // 使用批量上传接口上传所有图片并创建记录
+    const response = await request.post('/photos/upload-multiple', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    
+    if (response.data.success) {
       showSuccessToast('发布成功')
       router.push('/home')
     } else {
-      showToast('部分图片发布失败')
+      showToast('发布失败')
     }
   } catch (error) {
     console.error('发布失败:', error)

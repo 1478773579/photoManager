@@ -121,6 +121,14 @@ const loadFollowList = async (page = 1, append = false) => {
     } else {
       loadingMore.value = true
     }
+    
+    // 检查userId是否有效
+    if (!userId.value || isNaN(parseInt(userId.value))) {
+      console.error('无效的用户ID:', userId.value)
+      showToast('无效的用户ID')
+      router.push('/') // 重定向到首页
+      return
+    }
 
     const url = type.value === 'following' 
       ? `/api/follows/${userId.value}/following`
@@ -196,6 +204,14 @@ const goToUserProfile = (targetUserId) => {
 }
 
 onMounted(() => {
+  // 检查userId是否有效
+  if (!userId.value || isNaN(parseInt(userId.value))) {
+    console.error('无效的用户ID:', userId.value)
+    showToast('无效的用户ID')
+    router.push('/') // 重定向到首页
+    return
+  }
+  
   loadFollowList()
 })
 </script>

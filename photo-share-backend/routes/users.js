@@ -316,8 +316,19 @@ router.get('/search/:keyword', async (req, res) => {
 // 获取当前用户信息
 router.get('/me/info', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.id, {
-      attributes: { exclude: ['password'] }
+    const { id } = req.user;
+
+    const user = await User.findByPk(id, {
+      attributes: { exclude: ['password'] },
+      include: [
+        {
+          model: Photo,
+          as: 'photos',
+          attributes: ['id'],
+          where: { status: 'active' },
+          required: false
+        }
+      ]
     });
 
     if (!user) {
@@ -327,9 +338,38 @@ router.get('/me/info', authMiddleware, async (req, res) => {
       });
     }
 
+    // 获取关注统计
+    const [followersCount, followingCount] = await Promise.all([
+      Follow.count({
+        where: {
+          followingId: id,
+          status: 'active'
+        }
+      }),
+      Follow.count({
+        where: {
+          followerId: id,
+          status: 'active'
+        }
+      })
+    ]);
+
+    // 获取照片统计
+    const photosCount = user.photos ? user.photos.length : 0;
+
+    // 构建用户响应数据
+    const userResponse = {
+      ...user.toJSON(),
+      stats: {
+        photos: photosCount,
+        followers: followersCount,
+        following: followingCount
+      }
+    };
+
     res.json({
       success: true,
-      data: user
+      data: userResponse
     });
   } catch (error) {
     console.error('获取当前用户信息失败:', error);

@@ -71,7 +71,7 @@
               @click="goToPhotoDetail(photo.id)"
             >
               <van-image
-                :src="photo.image"
+                :src="photo.imageUrl"
                 fit="cover"
                 class="photo-image"
               />
@@ -147,19 +147,22 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import axios from 'axios'
+import request from '@/utils/request'
 
+const route = useRoute()
 const router = useRouter()
 
 const searchQuery = ref('')
 const hasSearched = ref(false)
 const activeTab = ref('photos')
 
-// 搜索历史
-const searchHistory = ref(['风景', '人像', '街拍', '日落', '建筑'])
+// 搜索历史 - 从本地存储获取，避免使用假数据
+const searchHistory = ref(localStorage.getItem('searchHistory') ? JSON.parse(localStorage.getItem('searchHistory')) : [])
 
-// 热门标签
-const hotTags = ref(['风景摄影', '人像写真', '城市夜景', '美食摄影', '旅行记录', '宠物萌照'])
+// 热门标签 - 待后端API实现，目前使用默认空数组
+const hotTags = ref([])
 
 // 搜索结果
 const searchResults = ref({
@@ -181,10 +184,23 @@ const goBack = () => {
 }
 
 // 执行搜索
-const handleSearch = () => {
-  if (!searchQuery.value.trim()) return
+const handleSearch = async () => {
+  console.log('搜索开始，关键词:', searchQuery.value)
+  if (!searchQuery.value.trim()) {
+    console.log('搜索关键词为空，不执行搜索')
+    return
+  }
   
   hasSearched.value = true
+  
+  // 更新路由参数，保存搜索状态
+  router.push({
+    path: '/search',
+    query: {
+      q: searchQuery.value,
+      type: activeTab.value
+    }
+  })
   
   // 添加到搜索历史
   if (!searchHistory.value.includes(searchQuery.value)) {
@@ -192,38 +208,33 @@ const handleSearch = () => {
     if (searchHistory.value.length > 10) {
       searchHistory.value.pop()
     }
+    // 保存到本地存储
+    localStorage.setItem('searchHistory', JSON.stringify(searchHistory.value))
   }
   
-  // 模拟搜索结果
-  searchResults.value = {
-    photos: [
-      {
-        id: 1,
-        title: '美丽的夕阳',
-        image: 'https://picsum.photos/seed/sunset1/300/400.jpg',
-        user: { nickname: '摄影师小王' }
-      },
-      {
-        id: 2,
-        title: '城市夜景',
-        image: 'https://picsum.photos/seed/city1/300/400.jpg',
-        user: { nickname: '摄影达人' }
-      }
-    ],
-    users: [
-      {
-        id: 1,
-        nickname: '摄影师小王',
-        avatar: 'https://picsum.photos/seed/user1/100/100.jpg',
-        followers: 1234,
-        photos: 56,
-        isFollowing: false
-      }
-    ],
-    tags: [
-      { name: '风景', count: 1234 },
-      { name: '夕阳', count: 567 }
-    ]
+  try {
+      // 调用后端API获取真实搜索结果
+      console.log('发送搜索请求到API:', `/api/search?q=${encodeURIComponent(searchQuery.value)}&type=${activeTab.value}`)
+      const response = await axios.get('/api/search', {
+        params: {
+          q: searchQuery.value,
+          type: activeTab.value
+        },
+        timeout: 10000
+      })
+    
+    console.log('搜索API响应:', response)
+    
+    if (response.data.success) {
+      searchResults.value = response.data.data
+      console.log('搜索结果更新:', searchResults.value)
+    } else {
+      console.log('搜索API返回失败:', response.data.message)
+    }
+  } catch (error) {
+    console.error('搜索失败:', error)
+    // 如果API调用失败，显示空结果
+    searchResults.value = { photos: [], users: [], tags: [] }
   }
 }
 
@@ -279,7 +290,16 @@ const handleUnfollow = (user) => {
 }
 
 onMounted(() => {
-  // 初始化搜索页面
+  // 初始化搜索页面，检查URL参数
+  const q = route.query.q
+  const type = route.query.type
+  if (q) {
+    searchQuery.value = q
+    if (type && ['photos', 'users', 'tags'].includes(type)) {
+      activeTab.value = type
+    }
+    handleSearch()
+  }
 })
 </script>
 

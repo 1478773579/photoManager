@@ -84,7 +84,7 @@ export const useUserStore = defineStore('user', () => {
   // 获取用户信息
   const fetchUserProfile = async () => {
     try {
-      const response = await request.get('/user/profile')
+      const response = await request.get('/users/me/info')
       setUser(response.data.data)
       return { success: true }
     } catch (error) {
@@ -98,7 +98,7 @@ export const useUserStore = defineStore('user', () => {
   // 更新用户信息
   const updateProfile = async (profileData) => {
     try {
-      const response = await request.put('/user/profile', profileData)
+      const response = await request.put('/users/profile', profileData)
       setUser(response.data.data)
       return { success: true }
     } catch (error) {

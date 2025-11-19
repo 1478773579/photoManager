@@ -26,7 +26,7 @@ const storage = multer.diskStorage({
 // 文件过滤器
 const fileFilter = (req, file, cb) => {
   // 检查文件类型
-  if (file.fieldname === 'photo') {
+  if (file.fieldname === 'photo' || file.fieldname === 'photos') {
     // 图片文件
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (allowedTypes.includes(file.mimetype)) {
@@ -53,7 +53,7 @@ const upload = multer({
   fileFilter: fileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB
-    files: 5 // 最多5个文件
+    files: 9 // 最多9个文件（与前端保持一致）
   }
 });
 

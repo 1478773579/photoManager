@@ -40,55 +40,32 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PhotoList from '@/components/PhotoList.vue'
+import request from '@/utils/request'
+import { showToast } from 'vant'
 
 const router = useRouter()
 
 const active = ref(0)
 const activeTab = ref('recommend')
 const searchKeyword = ref('')
-const unreadCount = ref(3) // 模拟未读消息数量
+const unreadCount = ref(0) // 从后端获取真实未读消息数量，当前默认0
 
 const recommendPhotos = ref([])
 const followingPhotos = ref([])
 const popularPhotos = ref([])
 
-// 模拟数据
-const mockPhotos = [
-  {
-    id: 1,
-    user: {
-      id: 1,
-      nickname: '摄影师小王',
-      avatar: 'https://picsum.photos/seed/user1/100/100.jpg'
-    },
-    imageUrl: 'https://picsum.photos/seed/photo1/400/500.jpg',
-    thumbnailUrl: 'https://picsum.photos/seed/photo1/200/250.jpg',
-    title: '美丽的夕阳',
-    description: '今天拍的夕阳，太美了！',
-    likesCount: 128,
-    commentsCount: 23,
-    viewsCount: 1024,
-    createdAt: '2024-01-15 18:30',
-    isLiked: false
-  },
-  {
-    id: 2,
-    user: {
-      id: 2,
-      nickname: '旅行达人',
-      avatar: 'https://picsum.photos/seed/user2/100/100.jpg'
-    },
-    imageUrl: 'https://picsum.photos/seed/photo2/400/600.jpg',
-    thumbnailUrl: 'https://picsum.photos/seed/photo2/200/300.jpg',
-    title: '山间小径',
-    description: '徒步旅行的美好时光',
-    likesCount: 256,
-    commentsCount: 45,
-    viewsCount: 2048,
-    createdAt: '2024-01-15 14:20',
-    isLiked: true
-  }
-]
+// 加载状态和分页信息
+const loading = ref(false)
+const loadMoreLoading = ref({
+  recommend: false,
+  following: false,
+  popular: false
+})
+const pagination = ref({
+  recommend: { current: 1, pageSize: 20, pages: 1 },
+  following: { current: 1, pageSize: 20, pages: 1 },
+  popular: { current: 1, pageSize: 20, pages: 1 }
+})
 
 // 处理搜索
 const handleSearch = (keyword) => {
@@ -100,50 +77,168 @@ const handleSearch = (keyword) => {
 // 处理标签切换
 const handleTabChange = (name) => {
   // 根据标签加载不同数据
-  loadPhotos(name)
+  if ((name === 'recommend' && recommendPhotos.value.length === 0) ||
+      (name === 'following' && followingPhotos.value.length === 0) ||
+      (name === 'popular' && popularPhotos.value.length === 0)) {
+    loadPhotos(name)
+  }
 }
 
 // 加载图片数据
 const loadPhotos = async (type) => {
   try {
-    // 这里应该调用API获取数据
-    // const response = await request.get(`/photos?type=${type}`)
+    loading.value = true
     
-    // 模拟数据
-    if (type === 'recommend') {
-      recommendPhotos.value = [...mockPhotos]
+    // 根据类型确定排序方式
+    let sort = 'latest'
+    if (type === 'popular') {
+      sort = 'popular'
     } else if (type === 'following') {
-      followingPhotos.value = [...mockPhotos]
-    } else if (type === 'popular') {
-      popularPhotos.value = [...mockPhotos]
+      // 关注的照片暂时使用最新排序，实际项目中可能需要单独的API
+      sort = 'latest'
+    }
+    
+    const response = await request.get('/photos', {
+      params: {
+        page: 1,
+        limit: pagination.value[type].pageSize,
+        sort: sort
+      }
+    })
+    
+    if (response.data.success) {
+      const { photos, pagination: pageInfo } = response.data.data
+      
+      // 根据类型更新数据
+      if (type === 'recommend') {
+        recommendPhotos.value = photos
+      } else if (type === 'following') {
+        followingPhotos.value = photos
+      } else if (type === 'popular') {
+        popularPhotos.value = photos
+      }
+      
+      // 更新分页信息
+      pagination.value[type] = {
+        ...pagination.value[type],
+        current: 1,
+        pages: pageInfo.pages
+      }
     }
   } catch (error) {
     console.error('加载图片失败:', error)
+    showToast('加载图片失败，请稍后重试')
+  } finally {
+    loading.value = false
   }
 }
 
 // 加载更多推荐图片
-const loadMoreRecommend = () => {
-  // 模拟加载更多
-  setTimeout(() => {
-    recommendPhotos.value.push(...mockPhotos)
-  }, 1000)
+const loadMoreRecommend = async () => {
+  if (loadMoreLoading.value.recommend) return
+  if (pagination.value.recommend.current >= pagination.value.recommend.pages) return
+  
+  try {
+    loadMoreLoading.value.recommend = true
+    const nextPage = pagination.value.recommend.current + 1
+    
+    const response = await request.get('/photos', {
+      params: {
+        page: nextPage,
+        limit: pagination.value.recommend.pageSize,
+        sort: 'latest'
+      }
+    })
+    
+    if (response.data.success) {
+      const { photos, pagination: pageInfo } = response.data.data
+      recommendPhotos.value.push(...photos)
+      
+      // 更新分页信息
+      pagination.value.recommend = {
+        ...pagination.value.recommend,
+        current: nextPage,
+        pages: pageInfo.pages
+      }
+    }
+  } catch (error) {
+    console.error('加载更多推荐图片失败:', error)
+    showToast('加载更多图片失败，请稍后重试')
+  } finally {
+    loadMoreLoading.value.recommend = false
+  }
 }
 
 // 加载更多关注图片
-const loadMoreFollowing = () => {
-  // 模拟加载更多
-  setTimeout(() => {
-    followingPhotos.value.push(...mockPhotos)
-  }, 1000)
+const loadMoreFollowing = async () => {
+  if (loadMoreLoading.value.following) return
+  if (pagination.value.following.current >= pagination.value.following.pages) return
+  
+  try {
+    loadMoreLoading.value.following = true
+    const nextPage = pagination.value.following.current + 1
+    
+    const response = await request.get('/photos', {
+      params: {
+        page: nextPage,
+        limit: pagination.value.following.pageSize,
+        sort: 'latest'
+      }
+    })
+    
+    if (response.data.success) {
+      const { photos, pagination: pageInfo } = response.data.data
+      followingPhotos.value.push(...photos)
+      
+      // 更新分页信息
+      pagination.value.following = {
+        ...pagination.value.following,
+        current: nextPage,
+        pages: pageInfo.pages
+      }
+    }
+  } catch (error) {
+    console.error('加载更多关注图片失败:', error)
+    showToast('加载更多图片失败，请稍后重试')
+  } finally {
+    loadMoreLoading.value.following = false
+  }
 }
 
 // 加载更多热门图片
-const loadMorePopular = () => {
-  // 模拟加载更多
-  setTimeout(() => {
-    popularPhotos.value.push(...mockPhotos)
-  }, 1000)
+const loadMorePopular = async () => {
+  if (loadMoreLoading.value.popular) return
+  if (pagination.value.popular.current >= pagination.value.popular.pages) return
+  
+  try {
+    loadMoreLoading.value.popular = true
+    const nextPage = pagination.value.popular.current + 1
+    
+    const response = await request.get('/photos', {
+      params: {
+        page: nextPage,
+        limit: pagination.value.popular.pageSize,
+        sort: 'popular'
+      }
+    })
+    
+    if (response.data.success) {
+      const { photos, pagination: pageInfo } = response.data.data
+      popularPhotos.value.push(...photos)
+      
+      // 更新分页信息
+      pagination.value.popular = {
+        ...pagination.value.popular,
+        current: nextPage,
+        pages: pageInfo.pages
+      }
+    }
+  } catch (error) {
+    console.error('加载更多热门图片失败:', error)
+    showToast('加载更多图片失败，请稍后重试')
+  } finally {
+    loadMoreLoading.value.popular = false
+  }
 }
 
 onMounted(() => {
