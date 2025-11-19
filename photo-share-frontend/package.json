@@ -1,0 +1,30 @@
+{
+  "name": "photo-share-frontend",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
+    "format": "prettier --write src/"
+  },
+  "dependencies": {
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.5",
+    "pinia": "^2.1.7",
+    "vant": "^4.8.11",
+    "axios": "^1.6.2",
+    "@vant/touch-emulator": "^1.4.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.5.2",
+    "@vue/eslint-config-prettier": "^8.0.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-vue": "^9.19.2",
+    "prettier": "^3.2.5",
+    "vite": "^5.0.10",
+    "unplugin-vue-components": "^0.26.0",
+    "unplugin-auto-import": "^0.17.2"
+  }
+}
